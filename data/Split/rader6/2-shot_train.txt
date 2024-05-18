@@ -1,0 +1,12 @@
+a2_s2_t1.mp4 0
+a2_s1_t2.mp4 0
+a7_s4_t4.mp4 1
+a7_s5_t3.mp4 1
+a12_s8_t3.mp4 2
+a12_s5_t1.mp4 2
+a17_s1_t3.mp4 3
+a17_s8_t2.mp4 3
+a23_s1_t3.mp4 4
+a23_s3_t1.mp4 4
+a27_s2_t4.mp4 5
+a27_s1_t1.mp4 5
