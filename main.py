@@ -291,16 +291,24 @@ def get_feas(val_loader, text_labels, model, config):
                 image_input = image.cuda(non_blocking=True)
                 
 
-                video_feas,text_feas = model.module.getfeatures(image_input,text_inputs)
+                video_feas,text_feas,logits = model.module.getfeatures(image_input,text_inputs)
                 # video:torch.Size([2, 512]); text:torch.Size([2, 27, 512])
                 # 将feature沿着dim=0拆开 分为b个
-                video_feas = video_feas.cpu().detach().numpy()
-                text_feas = text_feas.cpu().detach().numpy()
+                video_feas = video_feas.cpu().detach().numpy() #(b,512)
+                text_feas = text_feas.cpu().detach().numpy()# (b,27,512)
+                similarity = logits.view(b, -1).softmax(dim=-1)
+                # print(b, similarity.size())
+            
+                
+                
                 for j in range(b):
                     np.save(f"output/video_feas/{ID}.npy",video_feas[j])
-                    np.save(f"output/text_feas/{ID}.npy",text_feas[j])
+                    # 找到similarity[j]中dim=-1维度最大的值的索引
+                    index = np.argmax(similarity[j].cpu().detach().numpy())
+                    # 将索引对应的text_feas保存
+                    np.save(f"output/text_feas/{ID}.npy",text_feas[j][index])
+                    print(f"output/video_feas/{ID} is {index}")
                     ID += 1
-                    print(f"save {ID} features")
                 
 
 if __name__ == '__main__':

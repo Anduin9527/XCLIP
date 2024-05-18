@@ -156,14 +156,19 @@ class XCLIP(CLIP):
             text_features = self.cache_text(text_inputs)
         else:
             text_features = self.encode_text(text_inputs)
-        cache_text_features = text_features
+            
+        # print("Cache:",text_features.shape) ##TODO
         text_features = text_features.unsqueeze(0).expand(b, -1, -1)
+        # print("expand:",text_features.shape)##TODO
         text_features = text_features + self.prompts_generator(text_features, img_features)
-        ##TODO norm？   
-        # video_features = video_features / video_features.norm(dim=-1, keepdim=True)
-        # text_features = text_features / text_features.norm(dim=-1, keepdim=True)
+        # print("prompts_generator:",text_features.shape)##TODO
+        video_features = video_features / video_features.norm(dim=-1, keepdim=True)
+        text_features = text_features / text_features.norm(dim=-1, keepdim=True)
+        # print("Norm:", text_features.shape)##TODO
+        logit_scale = self.logit_scale.exp()
+        logits = torch.einsum("bd,bkd->bk", video_features, logit_scale * text_features)
         
-        return video_features, cache_text_features ## 看看Cache
+        return video_features, text_features, logits ## 看看Cache
         
 
 def build_model(state_dict: dict, T=8, droppath=0., use_checkpoint=False, logger=None, prompts_alpha=1e-1, prompts_layers=2, use_cache=True, mit_layers=4,):
