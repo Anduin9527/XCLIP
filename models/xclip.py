@@ -141,11 +141,30 @@ class XCLIP(CLIP):
            
         video_features = video_features / video_features.norm(dim=-1, keepdim=True)
         text_features = text_features / text_features.norm(dim=-1, keepdim=True)
+        #print(video_features.shape, text_features.shape) ##TODO
+        # torch.Size([2, 512]) torch.Size([2, 27, 512])
         logit_scale = self.logit_scale.exp()
         logits = torch.einsum("bd,bkd->bk", video_features, logit_scale * text_features)
         
         return logits
+    def getfeatures(self,image_input, text_inputs):
+        b = image_input.shape[0]
+        video_features, img_features = self.encode_video(image_input) 
+        img_features = img_features.mean(dim=1, keepdim=False)
 
+        if self.use_cache:
+            text_features = self.cache_text(text_inputs)
+        else:
+            text_features = self.encode_text(text_inputs)
+        cache_text_features = text_features
+        text_features = text_features.unsqueeze(0).expand(b, -1, -1)
+        text_features = text_features + self.prompts_generator(text_features, img_features)
+        ##TODO norm？   
+        # video_features = video_features / video_features.norm(dim=-1, keepdim=True)
+        # text_features = text_features / text_features.norm(dim=-1, keepdim=True)
+        
+        return video_features, cache_text_features ## 看看Cache
+        
 
 def build_model(state_dict: dict, T=8, droppath=0., use_checkpoint=False, logger=None, prompts_alpha=1e-1, prompts_layers=2, use_cache=True, mit_layers=4,):
     vit = "visual.proj" in state_dict

@@ -109,6 +109,8 @@ def update_config(config, args):
         config.OUTPUT = args.output
     if args.only_test:
         config.TEST.ONLY_TEST = True
+    if args.only_gene:
+        config.TEST.ONLY_GENE = True
     # set local rank for distributed training
     config.LOCAL_RANK = args.local_rank
     config.freeze()

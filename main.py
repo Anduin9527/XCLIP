@@ -21,6 +21,8 @@ from datasets.blending import CutmixMixupBlending
 from utils.config import get_config
 from models import xclip
 
+ID = 0
+
 def parse_option():
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', '-cfg', required=True, type=str, default='configs/k400/32_8.yaml')
@@ -35,13 +37,16 @@ def parse_option():
     parser.add_argument('--pretrained', type=str)
     parser.add_argument('--only_test', action='store_true')
     parser.add_argument('--batch-size', type=int)
+    parser.add_argument('--only_gene',action='store_true')
+    parser.add_argument('--ID',type=int,default=0,help='生成特征的开始编号')
     parser.add_argument('--accumulation-steps', type=int)
 
     parser.add_argument("--local_rank", type=int, default=-1, help='local rank for DistributedDataParallel')
     args = parser.parse_args()
 
     config = get_config(args)
-
+    global ID
+    ID = args.ID
     return args, config
 
 
@@ -98,7 +103,10 @@ def main(config):
         acc1 = validate(val_loader, text_labels, model, config)
         logger.info(f"Accuracy of the network on the {len(val_data)} test videos: {acc1:.1f}%")
         return
-
+    if config.TEST.ONLY_GENE:
+        ##TODO:生成特征并返回
+        get_feas(val_loader, text_labels, model, config)
+        return 
     for epoch in range(start_epoch, config.TRAIN.EPOCHS):
         train_loader.sampler.set_epoch(epoch)
         train_one_epoch(epoch, model, criterion, optimizer, lr_scheduler, train_loader, text_labels, config, mixup_fn)
@@ -216,7 +224,7 @@ def validate(val_loader, text_labels, model, config):
                     image_input = image_input.half()
                 
                 output = model(image_input, text_inputs)
-                
+                print(b, output.size())
                 similarity = output.view(b, -1).softmax(dim=-1)
                 tot_similarity += similarity
 
@@ -259,6 +267,41 @@ Acc@5 {acc5_meter.avg:.3f}
 """)
     return acc1_meter.avg
 
+
+@torch.no_grad()
+def get_feas(val_loader, text_labels, model, config):
+    model.eval()
+
+    with torch.no_grad():
+        text_inputs = text_labels.cuda()
+        global ID
+        for idx, batch_data in enumerate(val_loader):
+            _image = batch_data["imgs"]
+            label_id = batch_data["label"]
+            label_id = label_id.reshape(-1)
+
+            b, tn, c, h, w = _image.size()
+            t = config.DATA.NUM_FRAMES
+            n = tn // t
+            _image = _image.view(b, n, t, c, h, w)
+           
+            for i in range(n):
+                image = _image[:, i, :, :, :, :] # [b,t,c,h,w]
+                label_id = label_id.cuda(non_blocking=True)
+                image_input = image.cuda(non_blocking=True)
+                
+
+                video_feas,text_feas = model.module.getfeatures(image_input,text_inputs)
+                # video:torch.Size([2, 512]); text:torch.Size([2, 27, 512])
+                # 将feature沿着dim=0拆开 分为b个
+                video_feas = video_feas.cpu().detach().numpy()
+                text_feas = text_feas.cpu().detach().numpy()
+                for j in range(b):
+                    np.save(f"output/video_feas/{ID}.npy",video_feas[j])
+                    np.save(f"output/text_feas/{ID}.npy",text_feas[j])
+                    ID += 1
+                    print(f"save {ID} features")
+                
 
 if __name__ == '__main__':
     # prepare config

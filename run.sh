@@ -7,8 +7,8 @@ base_command="python -m torch.distributed.launch --nproc_per_node=1 main.py"
 accum_steps=4
 
 # Define the configurations and outputs based on powers of 2
-configs=("configs/rader6/16_32_1.yaml" "configs/rader6/16_32_2.yaml" "configs/rader6/16_32_4.yaml" "configs/rader6/16_32_8.yaml")
-outputs=("/hy-tmp/output/rader6_1" "/hy-tmp/output/rader6_2" "/hy-tmp/output/rader6_4" "/hy-tmp/output/rader6_8")
+configs=("configs/rader27/16_32_30.yaml" )
+outputs=( "/hy-tmp/output/rader27_30")
 
 # Loop through the configs and outputs
 for i in ${!configs[@]}; do

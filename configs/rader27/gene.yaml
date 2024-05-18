@@ -1,0 +1,15 @@
+DATA:
+  DATASET: rader27
+  LABEL_LIST: labels/rader_27_labels.csv
+  NUM_CLASSES: 27
+  NUM_FRAMES: 32
+  ROOT: data/rader27
+  TRAIN_FILE: data/Split/rader27/30-shot_train.txt
+  VAL_FILE: ./data/Split/split/26.txt
+MODEL:
+  ARCH: ViT-B/16
+TRAIN:
+  ACCUMULATION_STEPS: 1
+  BATCH_SIZE: 1
+  EPOCHS: 35
+  LR: 2.0e-06
